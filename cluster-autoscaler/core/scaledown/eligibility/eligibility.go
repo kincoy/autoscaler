@@ -138,13 +138,6 @@ func (c *Checker) unremovableReasonAndNodeUtilization(context *context.Autoscali
 		return simulator.UnexpectedError, nil
 	}
 
-	gpuConfig := context.CloudProvider.GetNodeGpuConfig(node)
-	utilInfo, err := utilization.Calculate(nodeInfo, ignoreDaemonSetsUtilization, context.IgnoreMirrorPodsUtilization, context.DynamicResourceAllocationEnabled, gpuConfig, timestamp)
-	if err != nil {
-		klog.Warningf("Failed to calculate utilization for %s: %v", node.Name, err)
-		return simulator.UnexpectedError, nil
-	}
-
 	// If scale down of unready nodes is disabled, skip the node if it is unready
 	if !context.ScaleDownUnreadyEnabled {
 		ready, _, _ := kube_util.GetReadinessState(node)
@@ -154,6 +147,12 @@ func (c *Checker) unremovableReasonAndNodeUtilization(context *context.Autoscali
 		}
 	}
 
+	gpuConfig := context.CloudProvider.GetNodeGpuConfig(node)
+	utilInfo, err := utilization.Calculate(nodeInfo, ignoreDaemonSetsUtilization, context.IgnoreMirrorPodsUtilization, context.DynamicResourceAllocationEnabled, gpuConfig, timestamp)
+	if err != nil {
+		klog.Warningf("Failed to calculate utilization for %s: %v", node.Name, err)
+		return simulator.UnexpectedError, nil
+	}
 	underutilized, err := c.isNodeBelowUtilizationThreshold(context, node, nodeGroup, utilInfo)
 	if err != nil {
 		klog.Warningf("Failed to check utilization thresholds for %s: %v", node.Name, err)
